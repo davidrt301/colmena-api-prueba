@@ -1,5 +1,6 @@
 package com.devsenior.colmena.config;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpStatus;
@@ -22,13 +23,16 @@ import java.util.List;
 
 @Configuration
 @EnableWebSecurity
-@EnableMethodSecurity   // habilita @PreAuthorize en los controladores
+@EnableMethodSecurity
 public class SecurityConfig {
 
     private final JwtFilter jwtFilter;
+    private final String origenesPermitidos;
 
-    public SecurityConfig(JwtFilter jwtFilter) {
+    public SecurityConfig(JwtFilter jwtFilter,
+                          @Value("${app.cors.origenes}") String origenesPermitidos) {
         this.jwtFilter = jwtFilter;
+        this.origenesPermitidos = origenesPermitidos;
     }
 
     @Bean
@@ -36,10 +40,11 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder();
     }
 
+    // Las direcciones permitidas vienen de la configuración, separadas por coma
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of("http://localhost:4200"));
+        config.setAllowedOrigins(List.of(origenesPermitidos.split(",")));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
 
@@ -48,15 +53,11 @@ public class SecurityConfig {
         return source;
     }
 
-    // Spring arma solo el verificador de credenciales con los dos beans que encuentra:
-    // nuestro UsuarioDetailsService (quien es) y el PasswordEncoder (como comparar la clave)
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
         return config.getAuthenticationManager();
     }
 
-    // Aqui solo se decide QUIEN PUEDE ENTRAR (autenticacion).
-    // QUE PUEDE HACER cada quien (autorizacion) se decide en cada controlador con @PreAuthorize.
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
@@ -68,7 +69,6 @@ public class SecurityConfig {
                         .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
                         .anyRequest().authenticated()
                 )
-                // Sin token o con token invalido -> 401 (no se quien eres)
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
                 .sessionManagement(session -> session
@@ -78,3 +78,4 @@ public class SecurityConfig {
         return http.build();
     }
 }
+
