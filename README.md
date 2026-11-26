@@ -104,4 +104,3 @@ src/main/java/com/devsenior/colmena/
 
 ---
 
-© 2026 Ana Alvarado · Educadora Tech & Desarrolladora Full Stack · Todos los derechos reservados · linkedin.com/in/ana-alvarado-instructora-full-stack
